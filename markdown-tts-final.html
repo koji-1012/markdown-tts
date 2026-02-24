@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マークダウン音声読み上げ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 30px;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #333;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+            margin-bottom: 25px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .btn-secondary:disabled {
+            opacity: 0.5;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 13px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        select {
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        input[type="range"] {
+            cursor: pointer;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            text-align: center;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.success {
+            background: #e6f7e6;
+            color: #008000;
+        }
+
+        .status.error {
+            background: #ffe6e6;
+            color: #cc0000;
+        }
+
+        .progress-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .progress-info {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .info-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: #856404;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ マークダウン音声読み上げ</h1>
+        <p class="subtitle">シンプル確実版</p>
+
+        <div class="section">
+            <div class="section-title">テキストを入力</div>
+            <textarea id="textInput" placeholder="マークダウンまたはテキストをペーストしてください..."></textarea>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="section">
+            <div class="section-title">読み上げ設定</div>
+            <div class="controls">
+                <div class="control-item">
+                    <label for="voiceSelect">音声</label>
+                    <select id="voiceSelect">
+                        <option value="">デフォルト（女性）</option>
+                        <option value="Google日本語">女性</option>
+                        <option value="">男性</option>
+                    </select>
+                </div>
+                <div class="control-item">
+                    <label for="speedControl">速度: <span id="speedValue">1.0x</span></label>
+                    <input type="range" id="speedControl" min="0.5" max="2" step="0.1" value="1">
+                </div>
+            </div>
+        </div>
+
+        <div class="progress-section">
+            <div class="progress-info">
+                <span id="charCount">文字数: 0</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <button class="btn-primary" onclick="generateAndPlay()">🔊 読み上げ開始</button>
+        <button class="btn-secondary" id="stopBtn" onclick="stopSpeech()" disabled>⏹️ 停止</button>
+        <button class="btn-secondary" onclick="resetState()" style="margin-bottom: 0;">リセット</button>
+
+        <div class="info-box">
+            ✅ APIキー不要 | 記号は自動削除 | ブラウザだけで動作
+        </div>
+    </div>
+
+    <script>
+        let cleanedText = '';
+        let isReading = false;
+        const STORAGE_KEY = 'tts_state_v2';
+
+        document.getElementById('speedControl').addEventListener('input', (e) => {
+            document.getElementById('speedValue').textContent = e.target.value + 'x';
+        });
+
+        function cleanText(text) {
+            text = text.replace(/https?:\/\/\S+/g, '');
+            text = text.replace(/(?:https?:|ftps?:)?\/\//g, '');
+            text = text.replace(/#{1,6}\s+/g, '');
+            text = text.replace(/\*{2,}(.*?)\*{2,}/g, '$1');
+            text = text.replace(/\*(.*?)\*/g, '$1');
+            text = text.replace(/__?(.*?)__?/g, '$1');
+            text = text.replace(/\[(.*?)\]\(.*?\)/g, '$1');
+            text = text.replace(/`{1,3}(.*?)`{1,3}/g, '$1');
+            text = text.replace(/^[\*\-\+]\s+/gm, '');
+            text = text.replace(/^\d+\.\s+/gm, '');
+            text = text.replace(/^>\s+/gm, '');
+            text = text.replace(/^---+$/gm, '');
+            text = text.replace(/\n{2,}/g, '\n');
+            return text.trim();
+        }
+
+        function showStatus(message, type = 'success') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status show ${type}`;
+            setTimeout(() => statusEl.classList.remove('show'), 4000);
+        }
+
+        function updateProgress() {
+            const charCount = cleanedText.length;
+            document.getElementById('charCount').textContent = `文字数: ${charCount}`;
+        }
+
+        function generateAndPlay() {
+            const textInput = document.getElementById('textInput');
+            const text = textInput.value;
+
+            if (!text.trim()) {
+                showStatus('テキストを入力してください', 'error');
+                return;
+            }
+
+            cleanedText = cleanText(text);
+
+            if (!cleanedText.trim()) {
+                showStatus('処理後にテキストが空になってしまいました', 'error');
+                return;
+            }
+
+            updateProgress();
+
+            const utterance = new SpeechSynthesisUtterance(cleanedText);
+            utterance.lang = 'ja-JP';
+            utterance.rate = parseFloat(document.getElementById('speedControl').value);
+            utterance.pitch = 1;
+            utterance.volume = 1;
+
+            utterance.onstart = () => {
+                isReading = true;
+                document.getElementById('stopBtn').disabled = false;
+                showStatus('読み上げ中...', 'success');
+            };
+
+            utterance.onend = () => {
+                isReading = false;
+                document.getElementById('stopBtn').disabled = true;
+                showStatus('読み上げ完了！', 'success');
+            };
+
+            utterance.onerror = (event) => {
+                showStatus('エラー: ' + event.error, 'error');
+                document.getElementById('stopBtn').disabled = true;
+            };
+
+            speechSynthesis.cancel();
+            speechSynthesis.speak(utterance);
+        }
+
+        function stopSpeech() {
+            speechSynthesis.cancel();
+            isReading = false;
+            document.getElementById('stopBtn').disabled = true;
+            showStatus('停止しました', 'success');
+        }
+
+        function resetState() {
+            cleanedText = '';
+            document.getElementById('textInput').value = '';
+            document.getElementById('progressFill').style.width = '0%';
+            document.getElementById('charCount').textContent = '文字数: 0';
+            speechSynthesis.cancel();
+            isReading = false;
+            document.getElementById('stopBtn').disabled = true;
+            showStatus('リセットしました', 'success');
+        }
+
+        window.addEventListener('load', () => {
+            showStatus('準備完了！テキストを入力してください', 'success');
+        });
+    </script>
+</body>
+</html>
