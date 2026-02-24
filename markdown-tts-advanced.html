@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マークダウン音声読み上げ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 30px;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #333;
+            text-align: center;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 10px 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #999;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        textarea {
+            height: 120px;
+            resize: vertical;
+        }
+
+        textarea:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+            margin-bottom: 0;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .control-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 12px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        select {
+            padding: 8px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        input[type="range"] {
+            cursor: pointer;
+        }
+
+        .status {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            text-align: center;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.success {
+            background: #e6f7e6;
+            color: #008000;
+        }
+
+        .status.error {
+            background: #ffe6e6;
+            color: #cc0000;
+        }
+
+        .progress-section {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .progress-info {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .info-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #856404;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ マークダウン読み上げ</h1>
+        <p class="subtitle">記憶機能付き</p>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('text')">テキスト</button>
+            <button class="tab" onclick="switchTab('url')">URL</button>
+        </div>
+
+        <!-- テキストタブ -->
+        <div class="tab-content active" id="tab-text">
+            <div class="section">
+                <div class="section-title">テキストを入力</div>
+                <textarea id="textInput" placeholder="マークダウンまたはテキストをペーストしてください..."></textarea>
+            </div>
+        </div>
+
+        <!-- URLタブ -->
+        <div class="tab-content" id="tab-url">
+            <div class="section">
+                <div class="section-title">Web URL</div>
+                <input type="text" id="urlInput" placeholder="https://...">
+                <button class="btn-primary" onclick="loadFromURL()">📥 URLから読み込み</button>
+            </div>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div class="section">
+            <div class="section-title">読み上げ設定</div>
+            <div class="controls">
+                <div class="control-item">
+                    <label for="speedControl">速度: <span id="speedValue">1.0x</span></label>
+                    <input type="range" id="speedControl" min="0.5" max="2" step="0.1" value="1">
+                </div>
+                <div class="control-item">
+                    <label for="pitchControl">音の高さ</label>
+                    <input type="range" id="pitchControl" min="0.5" max="2" step="0.1" value="1">
+                </div>
+            </div>
+        </div>
+
+        <div class="progress-section">
+            <div class="progress-info">
+                <span id="charCount">文字数: 0</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <button class="btn-primary" id="startBtn" onclick="startReading()">🔊 読み上げ開始</button>
+        <button class="btn-secondary" id="continueBtn" onclick="continueReading()" disabled>⏭️ 続きから</button>
+        <button class="btn-secondary" id="stopBtn" onclick="stopReading()" disabled>⏹️ 停止</button>
+        <button class="btn-secondary" onclick="resetState()">🔄 リセット</button>
+
+        <div class="info-box">
+            ✅ 続きから読む機能あり | 記憶は自動保存 | Web URLも対応
+        </div>
+    </div>
+
+    <script>
+        let cleanedText = '';
+        let currentPosition = 0;
+        let isReading = false;
+        const STORAGE_KEY = 'tts_advanced_state';
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tab}`).classList.add('active');
+        }
+
+        document.getElementById('speedControl').addEventListener('input', (e) => {
+            document.getElementById('speedValue').textContent = e.target.value + 'x';
+        });
+
+        function cleanText(text) {
+            text = text.replace(/https?:\/\/\S+/g, '');
+            text = text.replace(/(?:https?:|ftps?:)?\/\//g, '');
+            text = text.replace(/#{1,6}\s+/g, '');
+            text = text.replace(/\*{2,}(.*?)\*{2,}/g, '$1');
+            text = text.replace(/\*(.*?)\*/g, '$1');
+            text = text.replace(/__?(.*?)__?/g, '$1');
+            text = text.replace(/\[(.*?)\]\(.*?\)/g, '$1');
+            text = text.replace(/`{1,3}(.*?)`{1,3}/g, '$1');
+            text = text.replace(/^[\*\-\+]\s+/gm, '');
+            text = text.replace(/^\d+\.\s+/gm, '');
+            text = text.replace(/^>\s+/gm, '');
+            text = text.replace(/^---+$/gm, '');
+            text = text.replace(/\n{2,}/g, '\n');
+            return text.trim();
+        }
+
+        function showStatus(message, type = 'success') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status show ${type}`;
+            setTimeout(() => statusEl.classList.remove('show'), 4000);
+        }
+
+        function updateProgress() {
+            const percent = cleanedText.length > 0
+                ? Math.round((currentPosition / cleanedText.length) * 100)
+                : 0;
+            document.getElementById('charCount').textContent = `文字数: ${cleanedText.length}`;
+            document.getElementById('progressPercent').textContent = `${percent}%`;
+            document.getElementById('progressFill').style.width = `${percent}%`;
+        }
+
+        function saveState() {
+            const state = {
+                text: cleanedText,
+                position: currentPosition,
+                timestamp: Date.now()
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        }
+
+        function loadState() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                const state = JSON.parse(stored);
+                cleanedText = state.text;
+                currentPosition = state.position;
+                updateProgress();
+                return true;
+            }
+            return false;
+        }
+
+        async function loadFromURL() {
+            const url = document.getElementById('urlInput').value;
+            if (!url.trim()) {
+                showStatus('URLを入力してください', 'error');
+                return;
+            }
+
+            showStatus('URLから読み込み中...', 'success');
+
+            try {
+                const response = await fetch(url);
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const text = doc.body.innerText;
+
+                if (!text.trim()) {
+                    showStatus('テキストが見つかりません', 'error');
+                    return;
+                }
+
+                document.getElementById('textInput').value = text;
+                document.querySelector('[onclick*="text"]').click();
+                showStatus('URLから読み込みました', 'success');
+            } catch (error) {
+                showStatus('URL読み込みエラー: ' + error.message, 'error');
+            }
+        }
+
+        function startReading() {
+            const textInput = document.getElementById('textInput');
+            const text = textInput.value;
+
+            if (!text.trim()) {
+                showStatus('テキストを入力してください', 'error');
+                return;
+            }
+
+            cleanedText = cleanText(text);
+            currentPosition = 0;
+
+            if (!cleanedText.trim()) {
+                showStatus('処理後にテキストが空になってしまいました', 'error');
+                return;
+            }
+
+            readText();
+            updateProgress();
+        }
+
+        function continueReading() {
+            if (currentPosition >= cleanedText.length) {
+                showStatus('最後まで読み終わっています', 'error');
+                return;
+            }
+            readText();
+        }
+
+        function readText() {
+            if (currentPosition >= cleanedText.length) {
+                showStatus('読み上げ完了！', 'success');
+                document.getElementById('continueBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = true;
+                return;
+            }
+
+            const textToRead = cleanedText.substring(currentPosition);
+            const utterance = new SpeechSynthesisUtterance(textToRead);
+            utterance.lang = 'ja-JP';
+            utterance.rate = parseFloat(document.getElementById('speedControl').value);
+            utterance.pitch = parseFloat(document.getElementById('pitchControl').value);
+            utterance.volume = 1;
+
+            utterance.onstart = () => {
+                isReading = true;
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('continueBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                showStatus('読み上げ中...', 'success');
+            };
+
+            utterance.onend = () => {
+                isReading = false;
+                currentPosition = cleanedText.length;
+                saveState();
+                updateProgress();
+                document.getElementById('continueBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = true;
+                document.getElementById('startBtn').disabled = false;
+                showStatus('読み上げ完了！', 'success');
+            };
+
+            utterance.onerror = (event) => {
+                showStatus('エラー: ' + event.error, 'error');
+            };
+
+            speechSynthesis.cancel();
+            speechSynthesis.speak(utterance);
+        }
+
+        function stopReading() {
+            speechSynthesis.cancel();
+            isReading = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('continueBtn').disabled = false;
+            document.getElementById('startBtn').disabled = false;
+            saveState();
+            showStatus('停止しました', 'success');
+        }
+
+        function resetState() {
+            cleanedText = '';
+            currentPosition = 0;
+            document.getElementById('textInput').value = '';
+            document.getElementById('urlInput').value = '';
+            updateProgress();
+            speechSynthesis.cancel();
+            localStorage.removeItem(STORAGE_KEY);
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('continueBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = true;
+            showStatus('リセットしました', 'success');
+        }
+
+        window.addEventListener('load', () => {
+            if (loadState()) {
+                showStatus('前回の続きがあります！「続きから」で再開できます', 'success');
+                document.getElementById('continueBtn').disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
